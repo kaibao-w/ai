@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import GameView from '../views/GameView.vue';
 
 const routes = [
@@ -10,7 +10,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),  // 改为hash模式，支持本地文件打开
   routes
 });
 
