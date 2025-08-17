@@ -30,9 +30,10 @@
           </div>
         </div>
         
-        <!-- 加载状态 -->
+        <!-- 加载状态 - 动态提示文字 -->
         <div class="loading" v-if="isLoading">
           <div class="spinner"></div>
+          <span class="loading-text">{{ loadingText }}</span>
         </div>
         
         <!-- 对话消息 -->
@@ -80,8 +81,9 @@
 import { ref, onMounted, nextTick } from 'vue';
 import { generatePuzzle, askQuestion } from '@/api/deepseek';
 
-// 游戏状态
+// 游戏状态 - 添加loadingText动态控制提示文字
 const isLoading = ref(false);
+const loadingText = ref(''); // 动态加载提示文字
 const gameOver = ref(false);
 const puzzle = ref('');
 const question = ref('');
@@ -95,9 +97,10 @@ const formatTime = (timestamp) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// 开始游戏
+// 开始游戏 - 设置获取题目提示
 const startGame = async () => {
   isLoading.value = true;
+  loadingText.value = '正在获取题目...'; // 获取题目时的提示
   gameOver.value = false;
   chatHistory.value = []; 
   puzzle.value = '';
@@ -106,11 +109,9 @@ const startGame = async () => {
   question.value = '';
   
   try {
-    // 仅在游戏开始时获取谜题和汤底，不获取条件
     const { puzzle: puzzleText, answer } = await generatePuzzle();
     puzzle.value = puzzleText;
     soupBase.value = answer;
-    // 条件仅在游戏结束时获取
   } catch (error) {
     puzzle.value = '游戏加载失败，请刷新页面重试';
     console.error('游戏初始化失败:', error);
@@ -120,7 +121,7 @@ const startGame = async () => {
   }
 };
 
-// 提交问题 - 严格限制只处理answer和isCorrect
+// 提交问题 - 设置思考中提示
 const handleSubmit = async () => {
   if (!question.value.trim() || gameOver.value) return;
   
@@ -136,28 +137,25 @@ const handleSubmit = async () => {
   
   scrollToBottom();
   isLoading.value = true;
+  loadingText.value = '正在思考...'; // 处理问题时的提示
   
   try {
-    // API调用仅获取answer和isCorrect，忽略其他参数
     const { answer, isCorrect, conditions: conditionsList } = await askQuestion(
       puzzle.value, 
       soupBase.value, 
-      [], // 不传递条件列表
+      [], 
       chatHistory.value,
       userQuestion
     );
     
-    // 添加AI回答到对话历史（仅"是"/"否"/"无法回答"）
     chatHistory.value.push({
       role: 'assistant',
       content: answer,
       timestamp: Date.now()
     });
     
-    // 只有完全正确时才结束游戏并获取条件
     if (isCorrect) {
       gameOver.value = true;
-      // 仅在此时获取并设置条件列表
       conditions.value = Array.isArray(conditionsList) ? conditionsList : [];
     }
   } catch (error) {
@@ -331,7 +329,9 @@ onMounted(() => {
 .loading {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 16px;
+  gap: 8px;
 }
 
 .spinner {
@@ -341,6 +341,11 @@ onMounted(() => {
   border-radius: 50%;
   border-top-color: #2563eb;
   animation: spin 1s ease-in-out infinite;
+}
+
+.loading-text {
+  color: #4b5563;
+  font-size: 0.9rem;
 }
 
 @keyframes spin {
