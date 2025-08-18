@@ -96,8 +96,7 @@ export const generatePuzzle = async () => {
  * @param {string[]} conditions 核心条件列表
  * @param {Array} chatHistory 对话历史（确保是数组）
  * @param {string} question 用户当前问题
- * @returns {Promise<{answer: string, isCorrect: boolean, partial: boolean, hint: string}>} 
- *          AI回答、是否完全正确、是否部分正确、提示信息
+ * @returns {Promise<{answer: string, isCorrect: boolean}>} AI回答、是否完全正确
  */
 export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, question) => {
   // 确保chatHistory是数组
@@ -107,18 +106,18 @@ export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, que
   const messages = [
     {
       role: 'system',
-      content: `你是一个海龟汤游戏主持人。根据以下谜题情境、核心条件和汤底，回答用户的问题：
+      content: `你是一个海龟汤游戏主持人。根据以下谜题情境和汤底，回答用户的问题：
       
       谜题情境: ${puzzle}
-      核心条件: ${conditions.map((cond, i) => `${i+1}. ${cond}`).join('\n')}
       汤底答案: ${soupBase}
       
       回答规则:
-      1. 首先判断用户的问题是否涉及核心条件
-      2. 如果用户完全猜对所有核心条件，回答格式："[完全正确]恭喜你完全猜对了！汤底是：${soupBase}"
-      3. 如果用户猜对部分核心条件，回答格式："[部分正确]你猜对了：[正确条件]，还缺少：[缺少条件]"
-      4. 如果用户没有猜对任何核心条件，根据问题内容回答"是"、"否"或"无法回答"
-      5. 只返回上述规定的内容，不要有任何多余文字`
+      1. 只根据汤底答案判断用户问题的正确性
+      2. 如果用户的问题与汤底一致，回答"是"
+      3. 如果用户的问题与汤底矛盾，回答"否"
+      4. 如果问题与汤底无关或无法判断，回答"无法回答"
+      5. 只返回"是"、"否"或"无法回答"，不要有任何多余文字
+      6. 如果用户完全猜中了汤底，回答格式："[完全正确]恭喜你完全猜对了！"，不要包含汤底内容`
     }
   ];
   
@@ -139,7 +138,7 @@ export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, que
     const response = await deepseekApi.post('', {
       model: 'deepseek-chat',
       messages: messages,
-      max_tokens: 200,
+      max_tokens: 50,
       temperature: 0.5,
       top_p: 0.7
     });
@@ -147,27 +146,20 @@ export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, que
     const answer = response.data.choices[0].message.content.trim();
     console.log('API原始响应:', answer);
     
-    // 判断响应类型
+    // 判断是否完全正确
     if (answer.startsWith('[完全正确]')) {
       return {
-        answer: answer.replace('[完全正确]', '').trim(),
-        isCorrect: true,
-        partial: false,
-        hint: ''
-      };
-    } else if (answer.startsWith('[部分正确]')) {
-      return {
-        answer: answer.replace('[部分正确]', '').trim(),
-        isCorrect: false,
-        partial: true,
-        hint: answer.replace('[部分正确]', '').trim()
+        answer: '是', // 只返回"是"，不展示额外信息
+        isCorrect: true
       };
     } else {
+      // 确保只返回允许的回答
+      const validAnswers = ['是', '否', '无法回答'];
+      const cleanAnswer = validAnswers.includes(answer) ? answer : '无法回答';
+      
       return {
-        answer: answer,
-        isCorrect: false,
-        partial: false,
-        hint: ''
+        answer: cleanAnswer,
+        isCorrect: false
       };
     }
   } catch (error) {
