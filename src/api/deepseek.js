@@ -115,8 +115,8 @@ export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, que
       1. 只根据汤底答案判断用户问题的正确性
       2. 如果用户的问题与汤底一致，回答"是"
       3. 如果用户的问题与汤底矛盾，回答"否"
-      4. 如果问题与汤底无关或无法判断，回答"无法回答"
-      5. 只返回"是"、"否"或"无法回答"，不要有任何多余文字
+      4. 如果问题与汤底无关或无法判断，回答"无关"
+      5. 只返回"是"、"否"或"无关"，不要有任何多余文字
       6. 如果用户完全猜中了汤底，回答格式："[完全正确]恭喜你完全猜对了！"，不要包含汤底内容`
     }
   ];
@@ -154,8 +154,8 @@ export const askQuestion = async (puzzle, soupBase, conditions, chatHistory, que
       };
     } else {
       // 确保只返回允许的回答
-      const validAnswers = ['是', '否', '无法回答'];
-      const cleanAnswer = validAnswers.includes(answer) ? answer : '无法回答';
+      const validAnswers = ['是', '否', '无关'];
+      const cleanAnswer = validAnswers.includes(answer) ? answer : '无关';
       
       return {
         answer: cleanAnswer,
